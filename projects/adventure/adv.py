@@ -59,50 +59,50 @@ opposites = {
     "w": "e"
 }
 
-start_room = player.current_room.id
 
-
-def visit(prev_room_id=None, prev_direction=""):
-
-    if prev_direction != "":
-        player.travel(prev_direction)
-
+def visit(player, prev_room_id=None, prev_direction=""):
     room = player.current_room
     next_room_data = {}
+    room_map = {}
 
-    if room.id in visited_rooms:
+    if room.id not in visited_rooms:
+        visited_rooms.add(room.id)
+        available_dir = room.get_exits()
+        room_map = {room.id: {}}
+        for direction in available_dir:
+            if prev_room_id is not None and direction == opposites[prev_direction]:
+                room_map[room.id][direction] = prev_room_id
+            else:
+                room_map[room.id][direction] = None
 
-        if room.id != start_room:
-            player.travel(prev_direction)
+        # if a door in the room is not met
+        if None in room_map[room.id].values():
+            for door in room_map[room.id]:
 
-        traversal_path.append(opposites[prev_direction])
-        return {"id": room.id, "data": next_room_data}
-
-    visited_rooms.add(room.id)
-    available_dir = room.get_exits()
-    room_map = {room.id: {}}
-    for direction in available_dir:
-        if prev_room_id is not None and direction == opposites[prev_direction]:
-            room_map[room.id][direction] = prev_room_id
+                if room_map[room.id][door] is None:
+                    temp_player = player
+                    temp_player.travel(door)
+                    traversal_path.append(door)
+                    next_room = visit(temp_player, room.id, door)
+                    if next_room is not None:
+                        room_map[room.id][door] = next_room["id"]
+                        next_room_data = {
+                            **next_room["data"], **next_room_data}
         else:
-            room_map[room.id][direction] = None
-
-    for door in room_map[room.id]:
-        if room_map[room.id][door] is None:
-            traversal_path.append(door)
-            next_room = visit(room.id, door)
-            room_map[room.id][door] = next_room["id"]
-            next_room_data = {**next_room["data"], **next_room_data}
-
-    if prev_direction != "":
-        traversal_path.append(opposites[prev_direction])
-
+            player.travel(opposites[prev_direction])
+            traversal_path.append(opposites[prev_direction])
+    else:
+        print("Room visited")
+        print(room.id)
+        print(room_map)
+        print(next_room_data)
+        return
     next_room_data = {**room_map, **next_room_data}
-    print(next_room_data)
+
     return {"id": room.id, "data": next_room_data}
 
 
-ss = visit()
+visit(player)
 # print(ss["data"])
 
 
